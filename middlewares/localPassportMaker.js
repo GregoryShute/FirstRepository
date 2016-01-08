@@ -4,7 +4,7 @@ var expressSession = require('express-session');
 var passport = require('passport');
 var passportLocal = require('passport-local');
 var crypto = require('crypto');
-var person = require('../models/person');
+var person = require('../controllers/person');
 
 module.exports = function (app) {
 

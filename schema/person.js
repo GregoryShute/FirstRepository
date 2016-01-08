@@ -5,7 +5,9 @@ var personSchema = new Schema({
   username: { type: String, required: true, unique: true },
   hashedPassword: { type: String, required: true },
   salt: { type: String, required: true },
-  friends: [],
+  friends: [String],
+  requests: [String],
+  outboundRequests: [String],
   email: { type: String, required: true }
 });
 

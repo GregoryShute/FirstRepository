@@ -11,12 +11,18 @@ User:
 
 <a href="/search"> Search for non-private users here</a>
 
+This is <%= user %>. <br>
+<br>
 Add User: 
+
 <br>
-<br>
-<form action="/user" method="post" >
-    <input type="submit" id="submit" value="SignIn" name="submit">
+<form action="/requestFriend" method="post" >
+    <input type="hidden" name="username" value="<%=user%>">
+    <input type="submit" id="submit" value="Request Friend" name="submit">
 </form>
+
+
+
 
 
 </body>
