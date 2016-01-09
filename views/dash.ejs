@@ -1,6 +1,97 @@
 <html>
 <title></title>
 <head>
+<script type = "text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script>
+
+$(document).ready(function() {
+
+            
+
+            
+            $("#friends").on('click','li',function(){
+                var friend = $(this).text();
+                
+                $.ajax({
+                    url: '/dash',
+                    method: "POST",
+                    data: {runMethod:"goToFriend", friend: friend },
+                    dataType: "json",
+                    success: function(data){
+                        //fix this later
+                        initDash();
+                    }
+                
+                });
+                
+            });
+            
+            
+            $("#usersWaiting").on('click','li',function(){
+                var friend = $(this).text();
+                
+                $.ajax({
+                    url: '/dash',
+                    method: "POST",
+                    data: {runMethod:"acceptRequest", friend: friend},
+                    dataType: "json",
+                    success: function(data){
+                        if(data.success){
+                            //fix this later (obviously don't want to keep adding the same stuff on)
+                            initDash();
+                        }
+                    }
+                
+                });
+                
+            });
+           
+
+            //initialize the users dash
+        
+            function initDash(){
+                $.ajax({
+                    url: '/dash',
+                    method: "POST",
+                    data: {runMethod:"initDash"},
+                    dataType: "json",
+                    success: function(data){
+                
+                        //alert(data.outboundRequests);
+                        //get these arrays
+                        var friends = data.friends;
+                        var outboundRequests = data.outboundRequests;
+                        var inboundRequests = data.inboundRequests;
+                    
+                        friends.forEach(function(content){
+                            var element = $('<ul>' + '<li name="'+content+'" id="'+content+'">' +  content + '</li>' + '</ul>');
+                        
+                            $("#friends").append(element);
+                        });
+
+                        outboundRequests.forEach(function(content){
+                            var element = $('<ul>' + '<li name="'+content+'" id="'+content+'">' + content + '</li>' + '</ul>');
+                            $("#requestedFriends").append(element);
+                        });
+                    
+                        inboundRequests.forEach(function(content){
+                            var element = $('<ul>' + '<li name="'+content+'" id="'+content+'">' + content + '</li>'+ '</ul>');
+                            $("#usersWaiting").append(element);
+                        });
+               
+                    }
+                }); 
+            
+            }
+            
+            
+            initDash();
+            
+             
+});
+   
+  
+</script>
 
 </head>
 <body>
@@ -12,6 +103,31 @@ Hi, <%= user.username %>! <br>
 <a href="/settings"> Settings</a> <br>
 <a href="/signout">Sign out</a><br>
 <a href="/search"> Search for non-private users</a>
+<br>
+<br>
+Your Friends:
+<br>
+<div>
+<ul id="friends">
+
+</ul>
+</div>
+<br>
+Friends you have requested:
+<br>
+<div>
+<ul id="requestedFriends">
+
+</ul>
+</div>
+<br>
+Users awaiting a friend request reply:
+<br>
+<div>
+<ul id="usersWaiting">
+
+</ul>
+</div>
 
 </body>
 </html>

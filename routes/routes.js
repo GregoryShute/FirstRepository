@@ -120,17 +120,54 @@ module.exports = function (app, passport) {
     app.get('/dash', function (req, res) {
         if (req.isAuthenticated()) {
             res.render('dash', {
-            isAuthenticated: req.isAuthenticated(),
-            user: req.user
-        });
+                    isAuthenticated: req.isAuthenticated(),
+                    user: req.user
+                });   
         } else {
             res.redirect('/');
         }
 
     });
 
+    //todo: I want to start pulling stuff out of here and do this a little differently 
     app.post('/dash', function (req, res) {
+        if(req.isAuthenticated()) {
+            var username = req.user.username;
+            if(req.body.runMethod === "initDash"){
+                
+                person.getRequestsAndFriends(username, callback);
+                
+                function callback(requestsAndFriends){
+                    
+                        var friends = requestsAndFriends.friends;
+                        var outboundRequests = requestsAndFriends.outboundRequests;
+                        var inboundRequests = requestsAndFriends.inboundRequests; 
+                        var data = {friends: friends, outboundRequests: outboundRequests, inboundRequests: inboundRequests};
 
+                        res.json(data);
+                }
+            }else if(req.body.runMethod === "goToFriend"){
+               //for now, but needs to be changed
+               
+               
+            }else if(req.body.runMethod === "acceptRequest"){
+                var friend =req.body.friend;
+                
+                person.addFriend(username, friend, friendAdded);
+                
+                function friendAdded(success){
+                    res.json({success: success});
+                }
+                
+            }else{
+                res.json({});
+            }
+            
+        }else{
+            
+            res.redirect('/');
+            
+        }
     });
     
     
