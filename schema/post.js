@@ -3,7 +3,7 @@ var Schema = mongoose.Schema;
 
 var postSchema = new Schema({
   content: { type: String, minlength: 1, maxlength: 250 },
-  person: { type: String, required: true, unique: true },
+  user: { type: String, required: true, unique: true },
   privacy: String,
   postedTo: String,
   created_at: Date,

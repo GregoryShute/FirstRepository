@@ -8,7 +8,9 @@ var personSchema = new Schema({
   friends: [String],
   inboundRequests: [String],
   outboundRequests: [String],
-  email: { type: String, required: true }
+  email: { type: String, required: true },
+  altEmails: [String],
+  privacy: String
 });
 
 var personModel = mongoose.model('Person', personSchema, 'Person');

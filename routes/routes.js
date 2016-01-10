@@ -38,7 +38,6 @@ module.exports = function (app, passport) {
         var email = req.body.email;
 
         person.createUser(username, password, email, done);
-
         function done(success) {
             if (success) {
                 res.redirect('/signin');
@@ -152,8 +151,7 @@ module.exports = function (app, passport) {
                
             }else if(req.body.runMethod === "acceptRequest"){
                 var friend =req.body.friend;
-                
-                person.addFriend(username, friend, friendAdded);
+                person.acceptFriendRequest(username, friend, friendAdded);
                 
                 function friendAdded(success){
                     res.json({success: success});
@@ -186,7 +184,7 @@ module.exports = function (app, passport) {
 
        if(req.isAuthenticated()){
            var query = req.body.term;
-
+           
            person.searchForUser(query, finished);
            
            function finished(list){
@@ -216,7 +214,8 @@ module.exports = function (app, passport) {
     
     
     //AddFriend
-    
+    //this displays your username after you hit request friend. check out what causes that
+    //figure out why I'm even coming here to begin with
     app.post('/requestFriend', function(req, res){
         if(req.isAuthenticated()){
             var username = req.user.username;
@@ -248,3 +247,4 @@ module.exports = function (app, passport) {
 //Let users add a photo after verification.
 //Make better urls
 //Start commenting methods
+//Remember to add better error handling
