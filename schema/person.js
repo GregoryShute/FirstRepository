@@ -10,7 +10,10 @@ var personSchema = new Schema({
   outboundRequests: [String],
   email: { type: String, required: true },
   altEmails: [String],
-  privacy: String
+  privacy: String,
+  friendIds: [{ type : Schema.Types.ObjectId}],
+  outboundPostIds: [{ type : Schema.Types.ObjectId}], 
+  inboundPostIds: [{ type : Schema.Types.ObjectId}]
 });
 
 var personModel = mongoose.model('Person', personSchema, 'Person');

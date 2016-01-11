@@ -12,6 +12,7 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
 //Also database queries can probably be consolidated more
 
 
+//may want to store friends _id parameters along with the friends for faster access 
 
 
 //Method Name: isInboundRequest
