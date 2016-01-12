@@ -46,8 +46,23 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
  
 */
 
-function createPost(owner, parent, content, postedTo, finished) {
+function createPost(owner, parent, content, finished) {
+    mongoose.connect(mongoUrl, function (err) {
+        if (err) {
+            console.log(err);
+            finished(false);
+        } else {
 
+            var usersPost = new Post({ owner: owner, parent: parent, content: content });
+            usersPost.save(function (err) {
+                if (err) {
+                    database.disconnectHandler(mongoose, finished, null, false);
+                } else {
+                    database.disconnectHandler(mongoose, finished, null, true);
+                }
+            });
+        }
+    });
 };
 
 
@@ -187,11 +202,27 @@ function deletePost(){
 }
 
 //Options////////////////////////////////////////////////////////
-function setPostPrivacy(){
-    
+function setPostPrivacy(postId, privacy, finished){
+    mongoose.connect(mongoUrl, function (err) {
+        if (err) {
+            console.log(err);
+            finished(false);
+        } else {
+
+            var conditions = { _id: postId };
+            var update = { privacy: privacy };
+            var options = {};
+            Post.update(conditions, update, options, function(err){
+                if(err){
+                    console.log(err);
+                    finished(false);
+                }else{
+                    finished(true);
+                }
+            });
 }
 
-function getPostPrivacy(){
+function getPostPrivacy(postId){
     
 }
 

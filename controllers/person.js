@@ -4,6 +4,8 @@ var mongoose = database.mongoose;
 var crypto = require('crypto');
 var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
 
+//inputs specify what you should be putting in but it will handle the cases when you don't
+
 //todo check the way I'm doing the crypto again
 //need to move more stuff up here. Only stuff getting called directly from routes should be exported for now
 
@@ -15,20 +17,223 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
 //may want to store friends _id parameters along with the friends for faster access 
 
 
-//Method Name: isInboundRequest
+    //Method Name: getInboundRequests
+    //Method Status: Ready for Testing
+    /*
+    
+      Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
+      
+              'finished' is the callback function.
+              
+              
+      Outputs: callsback 'finished' with argument:
+           
+               {inboundRequests: [...]} if id associate with user 'username' exists
+                      
+               {inboundRequests: []} otherwise
+               
+          
+      Helpers: getUser  
+    
+    */
+
+
+function getInboundRequests(_id, finished) {
+
+    getUser(_id, done);
+
+    function done(inboundRequestIds) {
+        if (inboundRequestIds.length === 0) {
+            finished({ inboundRequests: [] });
+        } else {
+            Person.find({ _id: { $in: inboundRequestIds } }, { _id: 0, username: 1 }, function (err, inboundRequests) {
+                if (err) {
+                    console.log(err);
+                    finished({ inboundRequests: [] });
+                } else {
+                    finished({ inboundRequests: inboundRequests });
+                }
+            });
+        }
+    }
+};
+
+
+//Method Name: getOutboundRequests
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user that may have an inbound request to 'friend'
+  Inputs: _id' is the id associated with the user that wants to get the usernames in its outboundRequestIds
   
-          'friend' is the name of the user to whom there may be an outbound request from 'username'
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           { outboundRequests: [...] } if id associated with user 'username' has has friends
+                  
+           { outboundRequests: [] } otherwise
+           
+           
+   Helpers: None
+ 
+*/
+
+function getOutboundRequests(_id, finished) {
+
+    getUser(_id, done);
+
+    function done(outboundRequestIds) {
+        if (outboundRequestIds.length === 0) {
+            finished({ outboundRequests: [] });
+        } else {
+            Person.find({ _id: { $in: outboundRequestIds } }, { _id: 0, username: 1 }, function (err, outboundRequests) {
+                if (err) {
+                    console.log(err);
+                    finished({ outboundRequests: [] });
+                } else {
+                    finished({ outboundRequests: outboundRequests });
+                }
+            });
+        }
+    }
+};
+
+
+//Method Name: getIdByUsername
+//Method Status: Ready for Testing
+/*
+ 
+  Inputs: 'username' is the user that you want to get an Id for
+  
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           id if there is an id associated with user 'username'
+                  
+           null otherwise
+           
+           
+   Helpers: None
+ 
+*/
+
+
+function getIdByUsername(username, finished) {
+    var conditions = { username: username };
+    var userId;
+    Person.find(conditions, function (err, person) {
+        if (err) {
+            database.disconnectHandler(mongoose, finished, null, null);
+        } else {
+            userId = person._id;
+            database.disconnectHandler(mongoose, finished, null, userId);
+        }
+
+    });
+};
+
+
+//Method Name: getFriends
+//Method Status: Ready for Testing
+/*
+ 
+  Inputs: '_id' is the id associated with the user that wants to get the names of its friends
+  
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           {friends: [...]} if id associated with user 'username' has has friends
+                  
+           {friends: []} otherwise
+           
+           
+   Helpers: None
+ 
+*/
+
+function getFriends(_id, finished) {
+
+    getUser(_id, done);
+
+    function done(friendIds) {
+        if (friendIds.length === 0) {
+            finished({ friends: [] });
+        } else {
+            Person.find({ _id: { $in: friendIds } }, { _id: 0, username: 1 }, function (err, friends) {
+                if (err) {
+                    console.log(err);
+                    finished({ friends: [] });
+                } else {
+                    finished({ friends: friends });
+                }
+            });
+        }
+    }
+
+};
+
+
+//Method Name: getRequestIdsAndFriendIds
+//Method Status: Ready for Testing
+/*
+ 
+  Inputs: '_id' is the id associated with the user that wants to get an object with friendIds, outboundRequestIds and inboundRequestIds
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'username' has an inInbound request to 'friend' in their outboundRequests
+           {friendIds: [...], outboundRequestIds: [...], inboundRequestIds: [...]} if id associated with user 'username' has has requests
+                  
+           {friendIds: [''], outboundRequestIds: [''], inboundRequestIds: ['']} otherwise
+           
+           
+   Helpers: None
+ 
+*/
+
+function getRequestIdsAndFriendIds(_id, finished) {
+
+    getUser(_id, callback);
+
+    function callback(user) {
+        if (user !== null) {
+            var friendIds = user.friendIds;
+            var outboundRequestIds = user.outboundRequestIds;
+            var inboundRequestIds = user.inboundRequestIds;
+
+
+            finished({ friendIds: friendIds, outboundRequestIds: outboundRequestIds, inboundRequestIds: inboundRequestIds });
+        } else {
+            console.log('could not find the user');
+            finished({ friendIds: [], outboundRequestIds: [], inboundRequestIds: [] });
+        }
+
+    }
+
+};
+
+
+//Method Name: isInboundRequest
+//Method Status: Ready for Testing
+/*
+ 
+  Inputs: '_id' is the id associated with the user that may have an inbound request from 'friend'
+  
+          'friendId' is the id associated with the user to whom there may be an outbound request to 'username'
+          
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           'true' if user 'username' has an inbound request from 'friend' in their inboundRequestIds
                   
            'false' otherwise 
            
@@ -37,14 +242,14 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
  
 */
 
-function isInboundRequest(username, friend, finished) {
+function isInboundRequest(_id, friendId, finished) {
 
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
-            var conditions = { username: username, inboundRequests: friend };
+            var conditions = { _id: _id, inboundRequestIds: friendId };
             Person.findOne(conditions, function (err, Person) {
                 if (err) {
                     console.log(err);
@@ -59,35 +264,37 @@ function isInboundRequest(username, friend, finished) {
     });
 };
 
-    //Method Name: isOutboundRequest
-    //Method Status: Ready for Testing
-    /*
-    
-      Inputs: 'username' is the name of the user that may have an outbound request to 'friend'
-      
-              'friend' is the name of the user to whom there may be an inbound request from 'username'
-              
-              'finished' is the callback function.
-              
-              
-      Outputs: callsback 'finished' with argument:
+
+//Method Name: isOutboundRequest
+//Method Status: Ready for Testing
+/*
+ 
+  Inputs: '_id' is the id associated with the user that may have an outbound request to 'friend'
+  
+          'friendId' is the name of the user to whom there may be an inbound request from 'username'
+          
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           'true' if user 'username' has an outbound request to 'friend' in their outboundRequestIds
+                  
+           'false' otherwise 
            
-               'true' if user 'username' has an outbound request to 'friend' in their outboundRequests
-                      
-               'false' otherwise 
-               
-       Helpers: None
-    
-    */
-    
-function isOutboundRequest(username, friend, finished) {
+   Helpers: None
+ 
+*/
+
+
+function isOutboundRequest(_id, friendId, finished) {
 
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
-            var conditions = { username: username, outboundRequests: friend };
+            var conditions = { _id: _id, outboundRequestIds: friendId };
             Person.findOne(conditions, function (err, Person) {
                 if (err) {
                     console.log(err);
@@ -101,13 +308,13 @@ function isOutboundRequest(username, friend, finished) {
         }
     });
 };
-    
-    
+
+
 //Method Name: isUser
 //Method Status: Needs Modification (may want method name change)
 /*
  
-  Inputs: 'username' is a String.
+  Inputs: '_id' is the id of a user in the database.
           
           'finished' is the callback function.
           
@@ -123,13 +330,13 @@ function isOutboundRequest(username, friend, finished) {
  
 */
 
-function isUser(username, finished) {
+function isUser(_id, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
-            Person.findOne({ username: username }, function (err, person) {
+            Person.findOne({ _id: _id }, function (err, person) {
                 if (err) {
                     database.disconnectHandler(mongoose, finished, null, false);
                 } else if (!person) {
@@ -147,16 +354,16 @@ function isUser(username, finished) {
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user who has a document in the database at mongoUrl.
+  Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
   
-          'friend' is the name of another user who has a document in the database at mongoUrl.
+          'friendId' is the id associated with the another user who has a document in the database at mongoUrl.
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'username' has 'friend' in their friends
+           'true' if user 'username', associated with _id, has 'friend', associated with friendId in their friendIds
                   
            'false' otherwise
            
@@ -165,13 +372,14 @@ function isUser(username, finished) {
  
 */
 
-function isFriend(username, friend, finished) {
+
+function isFriend(_id, friendId, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
-            var conditions = { username: username, friend: friend }
+            var conditions = { _id: _id, friendId: friendId }
             Person.findOne(conditions, function (err, Person) {
                 if (err) {
                     console.log(err);
@@ -231,22 +439,20 @@ function isEmail(email, finished) {
 };
 
 
-
-
 //Method Name: isOkToSendFriendRequest
 //Method Status: Needs Modificatoin (consider turning this and functions like it into something like a decorator)
 /*
  
-  Inputs: 'username' is the name of the user who wants to send a friend request to 'friend'
+  Inputs: '_id' is the id associated with the user who wants to send a friend request to 'friend', associated with friendId.
   
-          'friend' is the name of the user to whom 'username' wants to check if it is okay to send a friend request.
+          'friendId' is the the id associated with the name of the user to whom 'username' wants to check if it is okay to send a friend request.
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'username' is the name of the user who does not have an outbound friend request to 'friend'
+           'true' if user 'username', associated with _id, is the name of the user who does not have an outbound friend request to 'friend', associated with friendId.
                   and if 'username' does not have an inbound request from 'friend'
                   and if 'username' is not 'friend'
                   and if 'username' is not already a friend of 'friend' 
@@ -259,26 +465,35 @@ function isEmail(email, finished) {
  
 */
 
-function isOkToSendFriendRequest(username, friend, finished) {
-    if (username === friend) {
+function isOkToSendFriendRequest(_id, friendId, finished) {
+    if (_id === friendId) {
         finished(false);
     } else {
 
-        isOutboundRequest(username, friend, outboundRequestExists);
+        isOutboundRequest(_id, friendId, outboundRequestExists);
 
         function outboundRequestExists(outboundExists) {
             if (!outboundExists) {
 
-                isFriend(username, friend, userExists);
+                isFriend(_id, friendId, userExists);
 
                 function userExists(alreadyFriend) {
                     if (!alreadyFriend) {
 
-                        isUser(friend, inboundRequestExists);
+                        isUser(friendId, inboundRequestExists);
                         function inboundRequestExists(userExists) {
                             if (userExists) {
 
-                                isInboundRequest(username, friend, finished);
+                                isInboundRequest(_id, friendId, done);
+                                
+                                function done(inboundRequestExisted){
+                                    if(inboundRequestExisted){
+                                        finished(false);
+                                    }else{
+                                        finished(true);
+                                    }
+                                }
+                                
                             } else {
                                 finished(false);
                             }
@@ -299,18 +514,18 @@ function isOkToSendFriendRequest(username, friend, finished) {
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user who wants to check if it is okay to  add 'friend' to friends.
+  Inputs: '_id' is the id associated with the user who wants to check if it is okay to  add 'friend' to friends.
   
-          'friend' is the name of the user that 'username' wants to check if it is okay to add.
+          'friendId' is the id associated with the user that 'username' wants to check if it is okay to add.
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'username' is not already a friend with 'friend'
-                  and if 'username' is not 'friend'
-                  and if 'friend' exists
+           'true' if user 'username', associated with id, is not already a friend with 'friend', associated with friendId
+                  and if the id associated with 'username' is not the same as the id associated with 'friend'
+                  and if 'friend', associated with friend id, exists
                   
            'false' otherwise
            
@@ -319,15 +534,15 @@ function isOkToSendFriendRequest(username, friend, finished) {
  
 */
 
-function isOkToAddFriend(username, friend, finished) {
-    if (username === friend) {
+function isOkToAddFriend(_id, friendId, finished) {
+    if (_id === friendId) {
         finished(false);
     } else {
-        isFriend(username, friend, userExists);
+        isFriend(_id, friendId, userExists);
 
         function userExists(alreadyFriend) {
             if (!alreadyFriend) {
-                isUser(username, finished);
+                isUser(_id, finished);
             } else {
                 finished(false);
             }
@@ -366,7 +581,7 @@ function updatePassword(user, newPassword, finished) {
             console.log(err);
             finished(false);
         } else {
-            //might want to use something other than _id
+
             var conditions = { _id: user._id };
             var update = { hashedPassword: hashedPassword, salt: salt };
             var options = {};
@@ -431,14 +646,14 @@ function checkPassword(user, password) {
 //Method Status: Needs Modification (may want method name change)
 /*
  
-  Inputs: 'id' is a String.
+  Inputs: '_id' is associated with a user.
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           user document if a user with 'id' exists
+           user document if a user with '_id' exists
                   
            null otherwise
            
@@ -448,13 +663,13 @@ function checkPassword(user, password) {
 */
 
 
-function retrieveUserById(id, finished) {
+function retrieveUserById(_id, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(null);
         } else {
-            Person.findOne({ _id: id }, function (err, person) {
+            Person.findOne({ _id: _id }, function (err, person) {
                 if (err) {
                     database.disconnectHandler(mongoose, finished, null, null);
                 };
@@ -523,7 +738,7 @@ function insertUser(username, hashedPassword, salt, email, finished) {
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user who has a document in the database at mongoUrl.
+  Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
           
           'finished' is the callback function.
           
@@ -539,13 +754,13 @@ function insertUser(username, hashedPassword, salt, email, finished) {
  
 */
 
-function getUser(username, finished) {
+function getUser(_id, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(null);
         } else {
-            var conditions = { username: username };
+            var conditions = { _id: _id };
             Person.findOne(conditions, function (err, Person) {
 
                 if (err) {
@@ -568,7 +783,7 @@ function getUser(username, finished) {
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user who sent a friend request to 'friend'.
+  Inputs: '_id' is the id associated with the user who sent a friend request to 'friend'.
   
           'friend' is the name of the user who received a friend request from 'username'.
           
@@ -585,17 +800,17 @@ function getUser(username, finished) {
            
   Helpers: None  
  
-*/
+*/    
 
-function removeRequests(username, friend, finished) {
+function removeRequests(_id, friendId, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
 
-            var conditions = { username: username };
-            var update = { $pull: { inboundRequests: friend } };
+            var conditions = { _id: _id };
+            var update = { $pull: { inboundRequestIds: friendId } };
             var options = {};
             Person.update(conditions, update, options, removeInboundRequest);
 
@@ -605,8 +820,8 @@ function removeRequests(username, friend, finished) {
                     database.disconnectHandler(mongoose, finished, null, false);
                 } else {
 
-                    conditions = { username: friend };
-                    var update = { $pull: { outboundRequests: username } }; //throws a warning if I don't add var, check this out later
+                    conditions = { _id: friendId };
+                    var update = { $pull: { outboundRequestIds: _id } }; 
                     options = {};
                     Person.update(conditions, update, options, requestsRemoved);
 
@@ -624,15 +839,15 @@ function removeRequests(username, friend, finished) {
     })
 
 };
-    
+
 
 //Method Name: addFriend
 //Method Status: Ready for Testing
 /*
  
-  Inputs: 'username' is the name of the user who wants to add 'friend' to friends.
+  Inputs: ''_id' is the id associated with the user who wants to add 'friend' to friends.
                      and is not already a friend with 'friend'
-                     and 'friend' !== 'username'
+                     and the id associated with 'friend' !== the id associated with 'username'
                      and 'friend' exists
   
           'friend' is the name of another user who wants to add 'user' to friends.
@@ -642,7 +857,7 @@ function removeRequests(username, friend, finished) {
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'username' has added 'friend' to their friends
+           'true' if the id associated with user 'username' has added the id associated with 'friend' to their friendIds
                   
            'false' otherwise
            
@@ -651,9 +866,9 @@ function removeRequests(username, friend, finished) {
  
 */
 
-function addFriend(username, friend, finished) {
+function addFriend(_id, friendId, finished) {
 
-    isOkToAddFriend(username, friend, finished);
+    isOkToAddFriend(_id, friendId, finished);
 
     function proceedToAdd(proceed) {
         if (proceed) {
@@ -663,9 +878,9 @@ function addFriend(username, friend, finished) {
                     console.log(err);
                     finished(false);
                 } else {
-                    var conditions = { username: username };
+                    var conditions = { _id: _id };
 
-                    var update = { $push: { friends: friend } };
+                    var update = { $push: { friendIds: friendId } };
                     var options = {};
                     Person.update(conditions, update, options, callback);
 
@@ -694,33 +909,33 @@ function addFriend(username, friend, finished) {
 //Method Status: Ready For Testing
 /*
  
-  Inputs: 'username' is the name of the user who is friends with 'friend'.
+  Inputs: '_id' is the id associated with the user who is friends with 'friend'.
   
-          'friend' is the name of the user who friends with 'username'.
+          'friendId' is the id associated with name of the user who friends with 'username'.
           
           'finished' is the callback function.
           
           
   Outputs: callsback 'finished' with argument:
        
-           'true' if user 'friend' is no longer in friends of 'username'
+           'true' if user the id associated with 'friend' is no longer in friendIds of 'username'
                   
            'false' otherwise
            
            
   Helpers: None 
  
-*/
+*/    
 
-function removeFriend(username, friend, finished) {
+function removeFriend(_id, friendId, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
 
-            var conditions = { username: username };
-            var update = { $pull: { friends: friend } };
+            var conditions = { _id: _id };
+            var update = { $pull: { friendIds: friendId } };
             var options = {};
             Person.update(conditions, update, options, removedFriend);
             function removedFriend(err) {
@@ -732,9 +947,7 @@ function removeFriend(username, friend, finished) {
             }
         }
     });
-};
-    
-    
+};    
     
     
     
@@ -765,9 +978,9 @@ module.exports = {
     
     */
 
-    changePassword: function (userId, oldPassword, newPassword, finished) {
+    changePassword: function (_id, oldPassword, newPassword, finished) {
         
-        retrieveUserById(userId, done);
+        retrieveUserById(_id, done);
 
         function done(user) {
             if (user) {
@@ -951,18 +1164,18 @@ module.exports = {
     },
     
     
-    //Method Name: getInboundRequests
+    //Method Name: getInboundRequestIds
     //Method Status: Ready for Testing
     /*
     
-      Inputs: 'username' is the name of the user who has a document in the database at mongoUrl.
+      Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
       
               'finished' is the callback function.
               
               
       Outputs: callsback 'finished' with argument:
            
-               {inboundRequests: [...]} if user 'username' exists
+               {inboundRequests: [...]} if id associate with user 'username' exists
                       
                {inboundRequests: []} otherwise
                
@@ -970,69 +1183,108 @@ module.exports = {
       Helpers: getUser  
     
     */
-  
-    getInboundRequests: function (username, finished) {
 
-        getUser(username, callback);
+    getInboundRequestIds: function (_id, finished) {
+
+        getUser(_id, callback);
 
         function callback(user) {
             if (user !== null) {
-                var inboundRequests = { inboundRequests: user.inboundRequests };
-                finished(inboundRequests);
+                var inboundRequestIds = { inboundRequestIds: user.inboundRequestIds };
+                finished(inboundRequestIds);
             } else {
                 console.log('could not find the user');
-                finished({ inboundRequests: [] });
+                finished({ inboundRequestIds: [] });
             }
 
         }
     },
     
     
-    //Method Name: getOutboundRequests
-    //Method Status: Ready for Testing
-    /*
-    
-      Inputs: 'username' is the name of the user who has a document in the database at mongoUrl.
-      
-              'finished' is the callback function.
-              
-              
-      Outputs: callsback 'finished' with argument:
-           
-               {outboundRequests: [...]} if user 'username' exists
-                      
-               {outboundRequests: []} otherwise
+        //Method Name: getOutboundRequestIds
+        //Method Status: Ready for Testing
+        /*
+        
+          Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
+          
+                  'finished' is the callback function.
+                  
+                  
+          Outputs: callsback 'finished' with argument:
                
-            
-      Helpers: getUser  
-    
-    */
-    
-    getOutboundRequests: function (username, finished) {
+                   {outboundRequestIds: [...]} if id associated with user 'username' exists
+                          
+                   {outboundRequestIds: []} otherwise
+                   
+                
+          Helpers: getUser  
+        
+        */
 
-        getUser(username, callback);
+        getOutboundRequestIds: function (_id, finished) {
 
-        function callback(user) {
-            if (user !== null) {
-                var outboundRequests = { outboundRequest: user.outboundRequests };
+            getUser(_id, callback);
 
-                finished(outboundRequests);
-            } else {
-                console.log('could not find the user');
-                finished({ outboundRequests: [] });
+            function callback(user) {
+                if (user !== null) {
+                    var outboundRequestIds = { outboundRequestIds: user.outboundRequestIds };
+
+                    finished(outboundRequestIds);
+                } else {
+                    console.log('could not find the user');
+                    finished({ outboundRequestIds: [] });
+                }
+
             }
-
-        }
-    },
+        },
     
+        //Method Name: getOutboundRequests
+        //Method Status: Ready for Testing
+        /*
+        
+          Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
+          
+                  'finished' is the callback function.
+                  
+                  
+          Outputs: callsback 'finished' with argument:
+               
+                   {outboundRequests: [...]} if id associated with user 'username' exists
+                          
+                   {outboundRequests: []} otherwise
+                   
+                
+          Helpers: getUser  
+        
+        */
+        
+        getOutboundRequests: function (_id, finished) {
+
+            getUser(_id, done);
+
+            function done(outboundRequestIds) {
+                if (outboundRequestIds.length === 0) {
+                    finished({ outboundRequests: [] });
+                } else {
+                    Person.find({ _id: { $in: outboundRequestIds } }, { _id: 0, username: 1 }, function (err, outboundRequests) {
+                        if (err) {
+                            console.log(err);
+                            finished({ outboundRequests: [] });
+                        } else {
+                            finished({ outboundRequests: outboundRequests });
+                        }
+                    });
+                }
+            }
+        },
     
     //Method Name: sendFriendRequestTo
     //Method Status: Needs Modificatoin (consider using something like a decorator, also break this up more)
     /*
     
-      Inputs: 'username' is the name of the user who does not have an outbound friend request to 'friend'
+      Inputs: _id' is the id associated with the user who does not have an outbound friend request to 'friend'
                and does not have an inbound request from 'friend'
-               and is not 'friend'
+               and is not the id associated with 'friend'
                and is not already a friend of 'friend' 
                and wants to send a friend request to 'friend'
                and 'friend' exists 
@@ -1044,8 +1296,8 @@ module.exports = {
               
       Outputs: callsback 'finished' with argument:
            
-               'true' if user 'username' has added 'friend' to their outboundRequests
-                      and if user 'friend' has added 'username' to their inboundRequests
+               'true' if user 'username' has added the id of 'friend' to their outboundRequests
+                      and if user 'friend' has added the id of 'username' to their inboundRequests
                       
                'false' otherwise
                
@@ -1054,66 +1306,83 @@ module.exports = {
     
     */
 
-    sendFriendRequestTo: function (username, friend, finished) {
-
-        isOkToSendFriendRequest(username, friend, sendReq);
-
-
-        function sendReq(success) {
-
-            if (!success) {
-
-                mongoose.connect(mongoUrl, function (err) {
-                    if (err) {
-
-                        console.log(err);
-                        finished(false);
-                    } else {
-                        var conditions = { username: friend };
-                        var update = { $push: { inboundRequests: username } };
-                        var options = {};
-                        Person.update(conditions, update, options, updateOutboundRequests);
-
-
-                        function updateOutboundRequests(err) {
-                            if (err) {
-                                console.log(err);
-                                database.disconnectHandler(mongoose, finished, null, false);
-                            } else {
-                                var conditions = { username: username };
-                                var update = { $push: { outboundRequests: friend } };
-                                var options = {};
-                                Person.update(conditions, update, options, callback);
-                            }
-
-                        }
-
-                        function callback(err) {
-                            if (err) {
-
-                                console.log(err);
-                                database.disconnectHandler(mongoose, finished, null, false);
-                            } else {
-
-                                database.disconnectHandler(mongoose, finished, null, true);
-                            }
-                        }
-                    }
-                })
-            } else {
-                database.disconnectHandler(mongoose, finished, null, false);
-            }
-        }//sendReq
-         
-        
-    },
     
+    
+        sendFriendRequestTo: function (_id, friend, finished) {
+
+            getIdByUsername(friend, gotIdByUsername);
+
+            function gotIdByUsername(friendId) {
+                if (friendId !== null) {
+                    isOkToSendFriendRequest(_id, friendId, sendReq);
+                } else {
+                    finished(false);
+                }
+            };
+
+            function sendReq(success) {
+
+                if (success) {
+
+                    mongoose.connect(mongoUrl, function (err) {
+                        if (err) {
+
+                            console.log(err);
+                            finished(false);
+                        } else {
+                            var conditions = { username: friend };
+                            var friendId;
+                            Person.find(conditions, updateInboundRequestIds);
+
+                            function updateInboundRequestIds(err, person) {
+                                if (err) {
+                                    console.log(err);
+                                    database.disconnectHandler(mongoose, finished, null, false);
+                                } else {
+                                    friendId = person._id;
+                                    person.inboundRequestIds.push(_id);
+                                    person.save(updateInboundRequestIds);
+                                }
+                            }
+
+
+                            function updateOutboundRequestIds(err, person) {
+                                if (err) {
+                                    console.log(err);
+                                    database.disconnectHandler(mongoose, finished, null, false);
+                                } else {
+                                    var conditions = { _id: _id };
+                                    var update = { $push: { outboundRequestIds: friendId } };
+                                    var options = {};
+                                    Person.update(conditions, update, options, done);
+                                }
+                            }
+
+                            function done(err) {
+                                if (err) {
+                                    console.log(err);
+                                    database.disconnectHandler(mongoose, finished, null, false);
+                                } else {
+                                    database.disconnectHandler(mongoose, finished, null, true);
+                                }
+                            }
+
+                        }
+
+                    });
+
+                } else {
+                    finished(false);
+                }
+            };
+        },
+                         
        
     //Method Name: acceptFriendRequest
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who received a friend request from 'username'.
+      Inputs: '_id' is the id associated with the user who received a friend request from 'friend'.
       
               'friend' is the name of the user who sent a friend request to 'username'.
               
@@ -1122,10 +1391,10 @@ module.exports = {
               
       Outputs: callsback 'finished' with argument:
            
-               'true' if user 'username' has added 'friend' to their friends
-                      and if user 'username' has deleted 'friend' from their inboundRequests 
-                      and if user 'friend' has added 'username' to their friends
-                      and if user 'friend' has deleted 'username' from their outboundRequests 
+               'true' if user 'username' has added the id associated with 'friend' to their friendIds
+                      and if user 'username' has deleted the id associated with 'friend' from their inboundRequestIds 
+                      and if user 'friend' has added the id associated wtih 'username' to their friendIds
+                      and if user 'friend' has deleted the id associated with 'username' from their outboundRequestIds 
                       
                'false' otherwise
                
@@ -1133,44 +1402,53 @@ module.exports = {
       Helpers: addFriend, removeRequests  
     
     */
-    
-    acceptFriendRequest: function (username, friend, finished) {
+        
+      acceptFriendRequest: function (_id, friend, finished) {
 
-        var addFriend = this.addFriend;
+          var usersFriendId;
 
-        addFriend(username, friend, mirrorAddFriend);
+          getIdByUsername(friend, gotIdByUsername);
 
-        function mirrorAddFriend(success) {
-            if (success) {
-                addFriend(friend, username, removeReqs);
-                function removeReqs(success) {
-                    if (success) {
-                        removeRequests(username, friend, finished);
-                    } else {
-                        console.log('error accepting friend request');
-                    }
-                }
-            } else {
-                console.log('error accepting friend request');
-            }
+          function gotIdByUsername(friendId) {
+              if (friendId !== null) {
+                  usersFriendId = friendId;
+                  addFriend(_id, friendId, mirrorAddFriend);
+              } else {
+                  finished(false);
+              }
+          };
 
-        }
+          function mirrorAddFriend(success) {
+              if (success) {
+                  addFriend(usersFriendId, _id, removeReqs);
+                  function removeReqs(success) {
+                      if (success) {
+                          removeRequests(_id, usersFriendId, finished);
+                      } else {
+                          console.log('error accepting friend request');
+                      }
+                  }
+              } else {
+                  console.log('error accepting friend request');
+              }
 
-    },
-    
+          }
+
+      },
+  
   
     //Method Name: getFriends
     //Method Status: Ready for Testing
     /*
     
-      Inputs: 'username' is the name of the user who has a document in the database at mongoUrl.
+      Inputs: '_id' is the id associated with the user who has a document in the database at mongoUrl.
               
               'finished' is the callback function.
               
               
       Outputs: callsback 'finished' with argument:
            
-               {friends, [...]} if user 'username' exists
+               {friends, [...]} if user 'username' associated with _id exists
                       
                {friends, []} otherwise
                
@@ -1178,23 +1456,23 @@ module.exports = {
        Helpers: getUser  
     
     */
-    
-    getFriends: function (username, finished) {
+     
+      getFriendIds: function (_id, finished) {
 
-        getUser(username, callback);
+          getUser(_id, callback);
 
-        function callback(user) {
-            if (user !== null) {
-                var friends = { friends: user.friends };
-                finished(friends);
-            } else {
-                console.log('could not find the user');
-                finished({ friends: [] });
-            }
+          function callback(user) {
+              if (user !== null) {
+                  var friendIds = { friendIds: user.friendIds };
+                  finished(friendIds);
+              } else {
+                  console.log('could not find the user');
+                  finished({ friendIds: [] });
+              }
 
-        }
+          }
 
-    },
+      },
     
     
     //Method Name: getRequestsAndFriends
@@ -1216,21 +1494,37 @@ module.exports = {
       Helpers: getUser  
     
     */
-    getRequestsAndFriends: function (username, finished) {
+     
+    getRequestsAndFriends: function (_id, finished) {
 
-        getUser(username, callback);
+        getRequestIdsAndFriendIds(_id, gotRequestIdsAndFriendIds);
 
-        function callback(user) {
-            if (user !== null) {
-                var friends = user.friends;
-                var outboundRequests = user.outboundRequests;
-                var inboundRequests = user.inboundRequests;
+        function gotRequestIdsAndFriendIds(requestIdsAndFriendIds) {
 
 
-                finished({ friends: friends, outboundRequests: outboundRequests, inboundRequests: inboundRequests });
-            } else {
-                console.log('could not find the user');
-                finished({ friends: [], outboundRequests: [], inboundRequests: [] });
+            var friendIds = requestIdsAndFriendIds.friendIds;
+            var outboundRequestIds = requestIdsAndFriendIds.outboundRequestIds;
+            var inboundRequestIds = requestIdsAndFriendIds.inboundRequestIds;
+
+            var usersFriends;
+            var usersOutboundRequests;
+            var usersInboundRequests;
+            
+
+            getFriends(friendIds, gotFriends);
+            
+            function gotFriends(friends) {
+                getOutboundRequests(outboundRequestIds, gotOutboundRequests);
+                usersFriends = friends;
+
+            }
+            function gotOutboundRequests(outboundRequests) {
+                getInboundRequests(inboundRequestIds, gotInboundRequests);
+                usersOutboundRequests = outboundRequests;
+            }
+            function gotInboundRequests(inboundRequests) {
+                usersInboundRequests = inboundRequests;
+                finished({ friends: usersFriends, outboundRequests: usersOutboundRequests, inboundRequests: usersInboundRequests });
             }
 
         }
@@ -1242,7 +1536,7 @@ module.exports = {
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who wants to remove 'friend' from their friends.
+      Inputs: '_id' is the id associated with the user who wants to remove 'friend' from their friends.
       
               'friend' is the name of the user who will no longer be friends with 'username'.
               
@@ -1251,8 +1545,8 @@ module.exports = {
               
       Outputs: callsback 'finished' with argument:
            
-               'true' if user 'username' has removed 'friend' from their friends
-                      and if user 'friend' has removed 'username' from their friends
+               'true' if user 'username' associated with _id has removed 'friend' from their friends
+                      and if user 'friend' has removed 'username' associated with _id from their friends
                       
                'false' otherwise
                
@@ -1261,12 +1555,24 @@ module.exports = {
     
     */
     
-    unFriend: function(username, friend, finished){
-        removeFriend(username, friend, removeUsername);
+    unFriend: function(_id, friend, finished){
+        
+        var fId;
+        
+        getIdByUsername(friend, gotIdByUsername);
+
+          function gotIdByUsername(friendId) {
+              if (friendId !== null) {
+                  fId = friendId; //this will not work
+                  removeFriend(_id, friendId, removeUsername);
+              } else {
+                  finished(false);
+              }
+          };
         
         function removeUsername(success){
             if(success){
-                removeFriend(friend, username, finished);
+                removeFriend(fId, _id, finished);
             }else{
                 console.log('problem unfriending');
             }
@@ -1278,7 +1584,7 @@ module.exports = {
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who wants to set their privacy setting.
+      Inputs: '_id' is the id associated with the user who wants to set their privacy setting.
       
               'privacySetting' is the String setting descriptor user 'username' wants to user to set their privacy setting.
               
@@ -1287,22 +1593,22 @@ module.exports = {
               
       Outputs: callsback 'finished' with argument:
            
-               'true' if user 'username' has has their privacy setting set to 'privacySetting'
+               'true' if user 'username' associated with _id has has their privacy setting set to 'privacySetting'
                       
                'false' otherwise
                
                
       Helpers: None 
     
-    */
+    */ 
     
-    setPrivacy: function (username, privacySetting, finished) {
+        setPrivacy: function (_id, privacySetting, finished) {
         mongoose.connect(mongoUrl, function (err) {
             if (err) {
                 console.log(err);
                 finished(false);
             } else {
-                var conditions = { username: username };
+                var conditions = { _id: _id };
                 var update = { privacy: privacySetting};
                 var options = {};
                 Person.update(conditions, update, options, callback);
@@ -1320,19 +1626,18 @@ module.exports = {
         });
     },
     
-    
     //Method Name: getPrivacy
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who wants to get their privacy setting.
+      Inputs: '_id' is the id associated with the user who wants to get their privacy setting.
               
               'finished' is the callback function.
               
               
       Outputs: callsback 'finished' with argument:
            
-               {privacySetting: ...} if user 'username' has a privacy setting
+               {privacySetting: ...} if user 'username' associated with _id has a privacy setting
                       
                {privacySetting: ''} otherwise
                
@@ -1341,14 +1646,14 @@ module.exports = {
     
     */
     
-    getPrivacy: function (username, finished) {
+        getPrivacy: function (_id, finished) {
         mongoose.connect(mongoUrl, function (err) {
             if (err) {
                 console.log(err);
                 finished({privacySetting:''});
             } else {
                 
-                var conditions = { username: username };
+                var conditions = { _id: _id };
 
                 Person.findOne(conditions, function (err, Person) {
                 if (err) {
@@ -1366,13 +1671,13 @@ module.exports = {
             }
         });
     },
-
-
+   
+    
     //Method Name: addEmail
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who wants to add an email account.
+      Inputs: '_id' is the id associated with the user who wants to add an email account.
       
               'email' is an email address
               
@@ -1381,7 +1686,7 @@ module.exports = {
               
       Outputs: callsback 'finished' with argument:
            
-               true if user 'username' has added 'email' to their alternative emails list
+               true if user 'username' associated with _id has added 'email' to their alternative emails list
                       
                false otherwise
                
@@ -1390,13 +1695,13 @@ module.exports = {
     
     */
     
-    addEmail: function(username, email, finished) {
+        addEmail: function(_id, email, finished) {
         mongoose.connect(mongoUrl, function (err) {
                 if (err) {
                     console.log(err);
                     finished(false);
                 } else {
-                    var conditions = { username: username };
+                    var conditions = { _id: _id };
 
                     var update = { $push: { altEmails: email } };
                     var options = {};
@@ -1420,14 +1725,14 @@ module.exports = {
     //Method Status: Ready For Testing
     /*
     
-      Inputs: 'username' is the name of the user who wants get their primary email.
+      Inputs: '_id' is the id associated with the user who wants get their primary email.
               
               'finished' is the callback function.
               
               
       Outputs: callsback 'finished' with argument:
            
-               {email: '...'} if user 'username' has a primary email
+               {email: '...'} if user 'username' associated with _id has a primary email
                       
                {email: ''} otherwise
                
@@ -1435,14 +1740,14 @@ module.exports = {
       Helpers: None 
     
     */
-    
-    getPrimaryEmail: function(username, finished) {
+
+     getPrimaryEmail: function(_id, finished) {
         mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished({email: ''});
         } else {
-            var conditions = { username: username};
+            var conditions = { _id: _id};
             Person.findOne(conditions, function (err, Person) {
                 if (err) {
                     console.log(err);

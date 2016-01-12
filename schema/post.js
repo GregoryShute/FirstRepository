@@ -6,7 +6,7 @@ var postSchema = new Schema({
   content: { type: String, minlength: 1, maxlength: 250 }, 
   privacy: String,
   parent: String,
-  postedTo: String,
+//  postedTo: String,
   children: [String],
   created_at: Date,
   updated_at: Date
