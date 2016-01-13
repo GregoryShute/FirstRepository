@@ -1,4 +1,5 @@
 var Post = require('../schema/post');
+var Person = require('../schema/person');
 var database = require('../database/mongoose');
 var mongoose = database.mongoose;
 var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
@@ -22,13 +23,65 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
 //Creation///////////////////////////////////////////////
 
 
+//Method Name: insertPost
+//Method Status: Not Done
+/*
+ 
+  Inputs: 'owner' is the name of the user who wants to insert a post into the database.
+  
+          'parent' is the name of the post that this post will be made as a reply.
+                   Set parent as '' if this is not a reply.
+  
+          'content' is a String that will be the content of the post.
+          
+          'finished' is the callback function.
+          
+          
+  Outputs: callsback 'finished' with argument:
+       
+           post._id if post was inserted into database
+                  
+           null otherwise
+           
+           
+  Helpers:
+ 
+  Notes: remember to use momentjs on the client to get the dates right
+*/
+
+function insertPost(owner, parent, content, finished) {
+    mongoose.connect(mongoUrl, function (err) {
+        if (err) {
+            console.log(err);
+            finished(null);
+        } else {
+            var currentTime = new Date();
+            var usersPost = new Post({ owner: owner, parent: parent, content: content, createdAt: currentTime});
+            usersPost.save(function (err, post) {
+                if (err) {
+                    database.disconnectHandler(mongoose, finished, null, null);
+                } else {
+                    database.disconnectHandler(mongoose, finished, null, post._id);
+                }
+            });
+        }
+    });
+};
+
+
 //Method Name: createPost
 //Method Status: Not Done
 /*
  
-  Inputs: 'owner' is the name of the user who wants to create a post.
+  Inputs: '_id' is the id associated with name of the user who wants to create a post.
+  
+          'owner' is the username associated with _id.
+  
+          'friendId' is the id associated with the page the user associated with _id is posting to
+                     this could be the same as _id if you're posting to your own page
   
           'parent' is the name of the post that this post will be made as a reply.
+                   Set parent as '' if this is not a reply.
   
           'content' is a String that will be the content of the post.
           
@@ -42,25 +95,61 @@ var mongoUrl = 'mongodb://localhost:27017/testdbtwo';
            false otherwise
            
            
-  Helpers:
+  Helpers: insertPost, addPostsToOwners
  
 */
 
-function createPost(owner, parent, content, finished) {
+function createPost(_id, owner, friendId, parent, content, finished){
+      
+      insertPost(owner, parent, content, addPostsToOwners);
+      
+      function postInsertionDone(postId){
+          if(postId === null){
+              finished(false);
+          }else{
+              addPostsToOwners(_id, friendId, postId, finished);
+          }
+      };
+};
+
+
+
+
+
+
+
+
+function addPostsToOwners(_id, friendId, postId, finished){
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
             finished(false);
         } else {
 
-            var usersPost = new Post({ owner: owner, parent: parent, content: content });
-            usersPost.save(function (err) {
-                if (err) {
+            var conditions = { _id: _id };
+            var update = { $push: { myPostIds: postId }};
+            var options = {};
+            Person.update(conditions, update, options, next);
+            function next(err) {
+                if(err){
+                    console.log(err);
                     database.disconnectHandler(mongoose, finished, null, false);
-                } else {
-                    database.disconnectHandler(mongoose, finished, null, true);
+                }else{
+                    var conditions = { _id: friendId };
+                    var update = { $push: { othersPostIds: postId }};
+                    var options = {};
+                    Person.update(conditions, update, options, done);
+                    function done(err){
+                        if(err){
+                            console.log(err);
+                            database.disconnectHandler(mongoose, finished, null, false);
+                        }else{
+                            database.disconnectHandler(mongoose, finished, null, true);
+                        }
+                    }
                 }
-            });
+                
+            }
         }
     });
 };
@@ -148,6 +237,8 @@ function setPost(owner, postId, content, finished){
  
 */
 
+
+
 function setChild(owner, parent, child, finished){
     
 }
@@ -161,8 +252,41 @@ function okToGetPost(){
     
 };
 
-function getPosts(){
-    
+// id is you and friendId is basically what page you're on which could be the same is id in this case
+//returns the an object with an array of posts at that users page
+
+//let the user assemble the posts
+function getPosts(pageId, finished){
+     mongoose.connect(mongoUrl, function (err) {
+        if (err) {
+            
+        finished({ postIds: [] });
+             
+        } else {
+            var postIds;
+             Person.find({ _id: pageId } , function (err, person) {
+                 if(err){
+                     console.log(err);
+                     database.disconnectHandler(mongoose, finished, null, {posts: []});
+                 }else{
+                     postIds = person.othersPostIds;
+                     Post.find({ _id: { $in: postIds } }, { _id:0, owner:1, content: 1, privacy:1, parent:1, createdAt:1 }, function (err, posts) {
+                        if(err){
+                            console.log(err);
+                            database.disconnectHandler(mongoose, finished, null, {posts: []} );
+                        }else{
+                            database.disconnectHandler(mongoose, finished, null, {posts: posts} );
+                        }
+                     });
+                 }
+                
+                
+            });
+            
+        }
+
+
+    });
 };
 
 function getPost(){
@@ -202,7 +326,7 @@ function deletePost(){
 }
 
 //Options////////////////////////////////////////////////////////
-function setPostPrivacy(postId, privacy, finished){
+function setPostPrivacy(postId, privacy, finished) {
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
@@ -212,15 +336,17 @@ function setPostPrivacy(postId, privacy, finished){
             var conditions = { _id: postId };
             var update = { privacy: privacy };
             var options = {};
-            Post.update(conditions, update, options, function(err){
-                if(err){
+            Post.update(conditions, update, options, function (err) {
+                if (err) {
                     console.log(err);
-                    finished(false);
-                }else{
-                    finished(true);
+                    database.disconnectHandler(mongoose, finished, null, false);
+                } else {
+                    database.disconnectHandler(mongoose, finished, null, true);
                 }
             });
-}
+        }
+    });
+};
 
 function getPostPrivacy(postId){
     

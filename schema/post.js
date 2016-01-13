@@ -7,9 +7,9 @@ var postSchema = new Schema({
   privacy: String,
   parent: String,
 //  postedTo: String,
-  children: [String],
-  created_at: Date,
-  updated_at: Date
+//  children: [String],
+  createdAt: Date,
+  //updated_at: Date
 });
 
 
