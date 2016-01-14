@@ -6,17 +6,11 @@ var personSchema = new Schema({
   //because this will only grow linearly with the number of users unlike posts
   hashedPassword: { type: String, required: true },
   salt: { type: String, required: true },
-  //friends: [String],
-  //inboundRequests: [String],
-  //outboundRequests: [String],
+
   email: { type: String, required: true },
   altEmails: [String],
   privacy: String,
-  
-  //friendIds: [{ type : Schema.Types.ObjectId}],
-  //inboundRequestsIds: [{ type : Schema.Types.ObjectId}],
-  //outboundRequestsIds: [{ type : Schema.Types.ObjectId}],
-  
+
   friends: [],
   inboundRequests: [],
   outboundRequests: [],
@@ -24,8 +18,8 @@ var personSchema = new Schema({
   myPosts: [],
   othersPosts: [],
   
-  myPostIds: [{ type : Schema.Types.ObjectId}], 
-  othersPostIds: [{ type : Schema.Types.ObjectId}]
+  //myPostIds: [{ type : Schema.Types.ObjectId}], 
+  //othersPostIds: [{ type : Schema.Types.ObjectId}]
 });
 
 var personModel = mongoose.model('Person', personSchema, 'Person');

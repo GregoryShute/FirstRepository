@@ -592,6 +592,12 @@ function retrieveUserById(_id, finished) {
 */
 
 function insertUser(username, hashedPassword, salt, email, finished) {
+    
+    
+    client.connect();
+    var query = client.query('INSERT INTO people values(username, lastname CHAR(20) )');
+    query.on('end', atEnd);
+    
     mongoose.connect(mongoUrl, function (err) {
         if (err) {
             console.log(err);
