@@ -9,7 +9,7 @@ module.exports = function () {
  
 
     function createPersonQuery(next) {
-        client.query('CREATE TABLE IF NOT EXISTS person(person_id integer primary key, username char(40), hashedPassword text, salt text, privacy char(20))');
+        client.query('CREATE TABLE IF NOT EXISTS people(person_id integer primary key, username char(40), hashedPassword text, salt text, privacy char(20))');
         next();
     };
 
